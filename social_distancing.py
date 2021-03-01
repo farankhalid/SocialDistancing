@@ -24,8 +24,8 @@ labelsPath = os.path.sep.join([config.MODEL_PATH, "coco.names"])
 LABELS = open(labelsPath).read().strip().split("\n")
 fps = FPS().start()
 # derive the paths to the YOLO weights and model configuration
-weightsPath = os.path.sep.join([config.MODEL_PATH, "yolov4.weights"])
-configPath = os.path.sep.join([config.MODEL_PATH, "yolov4.cfg"])
+weightsPath = os.path.sep.join([config.MODEL_PATH, "yolov4x-mish.weights"])
+configPath = os.path.sep.join([config.MODEL_PATH, "yolov4x-mish.cfg"])
 
 # load our YOLO object detector trained on COCO dataset (80 classes)
 print("[INFO] loading YOLO from disk...")
@@ -53,14 +53,14 @@ while True:
     # if the frame was not grabbed, then we have reached the end
     # of the stream
     if not grabbed:
-        print("breaking")
+        # print("breaking")
         break
     # resize the frame and then detect people (and only people) in it
     frame = imutils.resize(frame, width=800)
     start = time.time()
     results = detect_people(frame, net, ln,
                             personIdx=LABELS.index("person"))
-    print("results: ", results)
+    # print("results: ", results)
     end = time.time()
     # initialize the set of indexes that violate the minimum social
     # distance

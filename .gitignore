@@ -7,5 +7,5 @@
 # Editor-based HTTP Client requests
 /httpRequests/
 .idea
-yolov4/yolov4.weights
+yolov4/yolov4x-mish.weights
 yolov4/yolov4-tiny.weights

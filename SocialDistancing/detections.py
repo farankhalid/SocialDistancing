@@ -20,7 +20,7 @@ def detect_people(frame, net, ln, personIdx=0):
                                  swapRB=True, crop=False)
     net.setInput(blob)
     layerOutputs = net.forward(ln)
-    print("output: ", layerOutputs)
+    # print("output: ", layerOutputs)
     # initialize our lists of detected bounding boxes, centroids, and
     # confidences, respectively
     boxes = []
@@ -34,9 +34,13 @@ def detect_people(frame, net, ln, personIdx=0):
             # print("detection: ", detection)
             # extract the class ID and confidence (i.e., probability)
             # of the current object detection
+            print(detection[:7])
             scores = detection[5:]
+            print("scores: ", scores)
             classID = np.argmax(scores)
+            print("classID: ", classID)
             confidence = scores[classID]
+            print("confidence: ",  confidence)
             # filter detections by (1) ensuring that the object
             # detected was a person and (2) that the minimum
             # confidence is met
@@ -70,7 +74,7 @@ def detect_people(frame, net, ln, personIdx=0):
                         # update our results list to consist of the person
                         # prediction probability, bounding box coordinates,
                         # and the centroid
-                        r = (confidences[i], (x, y, x + w, y + h), centroids[i])
+                        r = (confidences[i], (round(x), round(y), round(x + w), round(y + h)), centroids[i])
                         results.append(r)
     # return the list of results
     return results
