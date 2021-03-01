@@ -3,8 +3,8 @@ from .social_distancing_config import MIN_CONF
 import numpy as np
 import cv2
 
-def detect_people(frame, net, ln, personIdx=0):
 
+def detect_people(frame, net, ln, personIdx=0):
     """ frame: The frame from your video file or directly from your webcam
         net: The pre-initialized and pre-trained YOLO object detection model
         ln: The YOLO CNN output layer names
@@ -20,6 +20,7 @@ def detect_people(frame, net, ln, personIdx=0):
                                  swapRB=True, crop=False)
     net.setInput(blob)
     layerOutputs = net.forward(ln)
+    print("output: ", layerOutputs)
     # initialize our lists of detected bounding boxes, centroids, and
     # confidences, respectively
     boxes = []
@@ -27,10 +28,10 @@ def detect_people(frame, net, ln, personIdx=0):
     confidences = []
     # loop over each of the layer outputs
     for output in layerOutputs:
-        print("output: ", output)
+        # print("output: ", output)
         # loop over each of the detections
         for detection in output:
-            print("detection: ", detection)
+            # print("detection: ", detection)
             # extract the class ID and confidence (i.e., probability)
             # of the current object detection
             scores = detection[5:]
@@ -71,5 +72,5 @@ def detect_people(frame, net, ln, personIdx=0):
                         # and the centroid
                         r = (confidences[i], (x, y, x + w, y + h), centroids[i])
                         results.append(r)
-                # return the list of results
-                return results
+    # return the list of results
+    return results

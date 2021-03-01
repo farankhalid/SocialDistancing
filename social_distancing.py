@@ -5,14 +5,27 @@ from scipy.spatial import distance as dist
 import numpy as np
 import argparse
 import imutils
+import time
+from imutils.video import FPS
 import cv2
 import os
 
+# construct the argument parse and parse the arguments
+ap = argparse.ArgumentParser()
+ap.add_argument("-i", "--input", type=str, default="",
+                help="path to (optional) input video file")
+ap.add_argument("-o", "--output", type=str, default="",
+                help="path to (optional) output video file")
+ap.add_argument("-d", "--display", type=int, default=1,
+                help="whether or not output frame should be displayed")
+args = vars(ap.parse_args())
+
 labelsPath = os.path.sep.join([config.MODEL_PATH, "coco.names"])
 LABELS = open(labelsPath).read().strip().split("\n")
+fps = FPS().start()
 # derive the paths to the YOLO weights and model configuration
-weightsPath = os.path.sep.join([config.MODEL_PATH, "yolov3.weights"])
-configPath = os.path.sep.join([config.MODEL_PATH, "yolov3.cfg"])
+weightsPath = os.path.sep.join([config.MODEL_PATH, "yolov4.weights"])
+configPath = os.path.sep.join([config.MODEL_PATH, "yolov4.cfg"])
 
 # load our YOLO object detector trained on COCO dataset (80 classes)
 print("[INFO] loading YOLO from disk...")
@@ -29,7 +42,8 @@ ln = net.getLayerNames()
 ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 # initialize the video stream and pointer to output video file
 print("[INFO] accessing video stream...")
-vs = cv2.VideoCapture(args["input"] if args["input"] else 0)
+vs = cv2.VideoCapture(args["input"] if args["input"] else "rtsp://admin:admin123@192.168.100.9:554/cam/realmonitor"
+                                                          "?channel=1&subtype=0")
 writer = None
 
 # loop over the frames from the video stream
@@ -39,32 +53,63 @@ while True:
     # if the frame was not grabbed, then we have reached the end
     # of the stream
     if not grabbed:
+        print("breaking")
         break
     # resize the frame and then detect people (and only people) in it
-    frame = imutils.resize(frame, width=700)
+    frame = imutils.resize(frame, width=800)
+    start = time.time()
     results = detect_people(frame, net, ln,
-        personIdx=LABELS.index("person"))
+                            personIdx=LABELS.index("person"))
+    print("results: ", results)
+    end = time.time()
     # initialize the set of indexes that violate the minimum social
     # distance
     violate = set()
     # loop over the results
-    for (i, (prob, bbox, centroid)) in enumerate(results):
-        # extract the bounding box and centroid coordinates, then
-        # initialize the color of the annotation
-        (startX, startY, endX, endY) = bbox
-        (cX, cY) = centroid
-        color = (0, 255, 0)
-        # if the index pair exists within the violation set, then
-        # update the color
-        if i in violate:
-            color = (0, 0, 255)
-        # draw (1) a bounding box around the person and (2) the
-        # centroid coordinates of the person,
-        cv2.rectangle(frame, (startX, startY), (endX, endY), color, 2)
-        cv2.circle(frame, (cX, cY), 5, color, 1)
+    start_drawing = time.time()
+    # ensure there are *at least* two people detections (required in
+    # order to compute our pairwise distance maps)
+    if len(results) >= 2:
+        # extract all centroids from the results and compute the
+        # Euclidean distances between all pairs of the centroids
+        centroids = np.array([r[2] for r in results])
+        D = dist.cdist(centroids, centroids, metric="euclidean")
+        # loop over the upper triangular of the distance matrix
+        for i in range(0, D.shape[0]):
+            for j in range(i + 1, D.shape[1]):
+                # check to see if the distance between any two
+                # centroid pairs is less than the configured number
+                # of pixels
+                if D[i, j] < config.MIN_DISTANCE:
+                    # update our violation set with the indexes of
+                    # the centroid pairs
+                    violate.add(i)
+                    violate.add(j)
+    if results:
+        for (i, (prob, bbox, centroid)) in enumerate(results):
+            # extract the bounding box and centroid coordinates, then
+            # initialize the color of the annotation
+            (startX, startY, endX, endY) = bbox
+            (cX, cY) = centroid
+            color = (0, 255, 0)
+            # if the index pair exists within the violation set, then
+            # update the color
+            if i in violate:
+                color = (0, 0, 255)
+            # draw (1) a bounding box around the person and (2) the
+            # centroid coordinates of the person,
+            cv2.rectangle(frame, (startX, startY), (endX, endY), color, 2)
+            cv2.circle(frame, (cX, cY), 5, color, 1)
+    else:
+        continue
+    end_drawing = time.time()
+
+    fps_label = "FPS: %.2f (excluding drawing time of %.2fms)" % (
+        1 / (end - start), (end_drawing - start_drawing) * 1000)
     # draw the total number of social distancing violations on the
     # output frame
     text = "Social Distancing Violations: {}".format(len(violate))
+    cv2.putText(frame, fps_label, (0, 25), cv2.FONT_HERSHEY_SIMPLEX, 1, (0, 0, 0), 2)
     cv2.putText(frame, text, (10, frame.shape[0] - 25),
                 cv2.FONT_HERSHEY_SIMPLEX, 0.85, (0, 0, 255), 3)
     # check to see if the output frame should be displayed to our

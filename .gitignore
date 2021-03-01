@@ -8,3 +8,4 @@
 /httpRequests/
 .idea
 yolov4/yolov4.weights
+yolov4/yolov4-tiny.weights
