@@ -43,7 +43,7 @@ ln = [ln[i[0] - 1] for i in net.getUnconnectedOutLayers()]
 # initialize the video stream and pointer to output video file
 print("[INFO] accessing video stream...")
 vs = cv2.VideoCapture(args["input"] if args["input"] else "rtsp://admin:admin123@192.168.100.9:554/cam/realmonitor"
-                                                          "?channel=1&subtype=0")
+                                                          "?channel=2&subtype=0")
 writer = None
 
 # loop over the frames from the video stream
